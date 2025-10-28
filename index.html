@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-M">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gabaritos</title>
+    <!-- Carrega o Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Importa o Google Fonts "Inter" -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Ícones (Phosphor Icons) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Define a fonte Inter como padrão */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Classe utilitária para esconder elementos */
+        .hidden {
+            display: none;
+        }
+        /* Estilo para o loader */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        /* NOVAS REGRAS PARA O RELATÓRIO GRID */
+#report-grid-container {
+    display: grid;
+    gap: 1px; /* Cria as linhas de grade */
+    background-color: #d1d5db; /* Cor das linhas (cinza) */
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem; /* rounded-lg */
+    overflow: hidden; /* Para o border-radius funcionar */
+}
+/* Estilo padrão da célula */
+#report-grid-container > div {
+    padding: 0.6rem 0.75rem; /* py-2 px-3 */
+    background-color: #ffffff; /* Célula branca */
+    font-size: 0.875rem; /* text-sm */
+    user-select: text; /* Força a seleção de texto */
+    cursor: text;      /* Mostra o cursor de texto */
+}
+/* Estilo da célula de Cabeçalho */
+.report-header {
+    background-color: #f9fafb; /* bg-gray-50 */
+    font-weight: 500; /* font-medium */
+    color: #4b5563; /* text-gray-600 */
+    font-size: 0.75rem; /* text-xs */
+    text-transform: uppercase;
+    letter-spacing: 0.05em; /* tracking-wider */
+}
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="app-container" class="max-w-7xl mx-auto p-4 md:p-8">
+
+        <!-- Cabeçalho Principal -->
+        <header class="mb-8 p-6 bg-white rounded-lg shadow-md flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="ph ph-check-square-offset text-4xl text-blue-600"></i>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Sistema de Correção de Gabaritos</h1>
+            </div>
+            <!-- Botão de Voltar Global -->
+            <button id="back-to-home" class="hidden items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                <i class="ph ph-arrow-left"></i>
+                <span class="hidden md:inline">Voltar</span>
+            </button>
+        </header>
+
+        <!-- Navegação Principal (Home) -->
+        <main id="main-nav" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <button data-target="student-section" class="nav-button bg-green-500 hover:bg-green-600 text-white p-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                <i class="ph ph-user-circle-plus text-5xl mb-3"></i>
+                <h2 class="text-2xl font-semibold">Cadastrar Gabarito</h2>
+                <p class="font-light">Área do Aluno</p>
+            </button>
+            <button data-target="admin-proof-section" class="nav-button admin-button bg-blue-500 hover:bg-blue-600 text-white p-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                <i class="ph ph-note-pencil text-5xl mb-3"></i>
+                <h2 class="text-2xl font-semibold">Cadastrar Prova</h2>
+                <p class="font-light">Área do Professor</p>
+            </button>
+            <button data-target="admin-student-section" class="nav-button admin-button bg-indigo-500 hover:bg-indigo-600 text-white p-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                <i class="ph ph-users-three text-5xl mb-3"></i>
+                <h2 class="text-2xl font-semibold">Cadastrar Alunos</h2>
+                <p class="font-light">Área do Professor</p>
+            </button>
+            <button data-target="admin-report-section" class="nav-button admin-button bg-purple-500 hover:bg-purple-600 text-white p-6 rounded-lg shadow-lg transition-transform hover:scale-105">
+                <i class="ph ph-chart-line-up text-5xl mb-3"></i>
+                <h2 class="text-2xl font-semibold">Relatórios</h2>
+                <p class="font-light">Área do Professor</p>
+            </button>
+        </main>
+
+        <!-- Conteúdo das Seções (Inicia escondido) -->
+        <div id="content-views">
+
+            <!-- 1. Seção do Aluno (Cadastrar Gabarito) -->
+            <section id="student-section" class="app-view hidden">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md max-w-2xl mx-auto">
+                    <!-- Passo 1: Digitar RA -->
+                    <div id="student-step-1-ra">
+                        <h2 class="text-2xl font-semibold mb-5 text-gray-700">Identificação do Aluno</h2>
+                        <form id="student-ra-form">
+                            <label for="student-ra-input" class="block text-sm font-medium text-gray-700 mb-2">Digite seu RA (com dígito, sem hífen)</label>
+                            <input type="text" id="student-ra-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 123456789">
+                            <button type="submit" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors mt-4 font-semibold">
+                                Buscar
+                            </button>
+                        </form>
+                    </div>
+                    <!-- Passo 2: Confirmar Aluno -->
+                    <div id="student-step-2-confirm" class="hidden text-center">
+                        <i class="ph ph-user-circle text-6xl text-gray-400 mb-3"></i>
+                        <h2 class="text-2xl font-semibold mb-2">Confirmar Dados</h2>
+                        <p class="text-lg text-gray-600">Nome: <strong id="student-confirm-name" class="text-gray-900"></strong></p>
+                        <p class="text-lg text-gray-600 mb-6">Série: <strong id="student-confirm-grade" class="text-gray-900"></strong></p>
+                        <div class="flex gap-4">
+                            <button id="student-confirm-no" class="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors font-medium">Não sou eu</button>
+                            <button id="student-confirm-yes" class="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors font-medium">Confirmar e Iniciar Prova</button>
+                        </div>
+                    </div>
+                    <!-- Passo 3: Responder Prova -->
+                    <div id="student-step-3-exam" class="hidden">
+                        <h2 class="text-2xl font-semibold mb-5 text-gray-700" id="student-exam-title">Prova</h2>
+                        <form id="student-exam-form">
+                            <!-- Conteúdo da prova será gerado aqui via JS -->
+                        </form>
+                        <button id="student-exam-submit" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors mt-6 font-semibold">
+                            Enviar Respostas
+                        </button>
+                        <p class="text-sm text-gray-500 text-center mt-3">Se você enviar novamente, suas respostas anteriores serão substituídas.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Seção Admin: Cadastrar Prova -->
+            <section id="admin-proof-section" class="app-view hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Formulário de Cadastro/Edição -->
+                    <div class="lg:col-span-2 bg-white p-6 md:p-8 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-5 text-gray-700" id="proof-form-title">Cadastrar Nova Prova</h2>
+                        <form id="proof-form">
+                            <input type="hidden" id="proof-edit-id">
+                            <div class="mb-4">
+                                <label for="proof-grade" class="block text-sm font-medium text-gray-700 mb-2">Turma/Série</label>
+                                <select id="proof-grade" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <!-- Opções de séries serão preenchidas por JS -->
+                                </select>
+                            </div>
+
+                            <!-- Disciplinas Dinâmicas -->
+                            <h3 class="text-lg font-medium text-gray-700 mt-6 mb-3">Disciplinas</h3>
+                            <div id="subjects-container" class="space-y-4">
+                                <!-- Campos da primeira disciplina -->
+                                <div class="subject-field-group p-4 border rounded-lg bg-gray-50">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Disciplina</label>
+                                            <input type="text" class="subject-name w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: Matemática" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Nº de Questões</label>
+                                            <input type="number" class="subject-questions w-full p-2 border border-gray-300 rounded-md" min="1" value="5" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Nº de Alternativas</label>
+                                            <input type="number" class="subject-alternatives w-full p-2 border border-gray-300 rounded-md" min="2" max="5" value="4" required>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="remove-subject-btn text-red-500 hover:text-red-700 text-sm mt-2 font-medium hidden">Remover Disciplina</button>
+                                </div>
+                            </div>
+                            <button type="button" id="add-subject-btn" class="mt-4 bg-gray-200 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium">
+                                + Adicionar Disciplina
+                            </button>
+
+                            <!-- Gabarito (Aparece após definir disciplinas) -->
+                            <div id="answer-key-section" class="mt-6 hidden">
+                                <h3 class="text-lg font-medium text-gray-700 mb-3">Gabarito Oficial</h3>
+                                <div id="answer-key-fields" class="space-y-4">
+                                    <!-- Campos do gabarito serão gerados aqui -->
+                                </div>
+                            </div>
+                            
+                            <button type="button" id="generate-key-btn" class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg shadow-md hover:bg-blue-600 transition-colors mt-6 font-semibold">
+                                Definir Gabarito
+                            </button>
+                            
+                            <button type="submit" id="save-proof-btn" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors mt-4 font-semibold hidden">
+                                Salvar Prova
+                            </button>
+                            <button type="button" id="cancel-edit-proof-btn" class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg shadow-md hover:bg-gray-600 transition-colors mt-4 font-semibold hidden">
+                                Cancelar Edição
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Provas Cadastradas -->
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-5 text-gray-700">Provas Cadastradas</h2>
+                        <div class="max-h-[600px] overflow-y-auto">
+                            <ul id="proofs-list" class="space-y-3">
+                                <!-- Lista será preenchida por JS -->
+                                <li class="text-gray-500">Nenhuma prova cadastrada.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Seção Admin: Cadastrar Alunos -->
+            <section id="admin-student-section" class="app-view hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Formulário de Cadastro -->
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-5 text-gray-700">Cadastrar Aluno</h2>
+                        <form id="student-register-form">
+                            <input type="hidden" id="student-edit-id">
+                            <div class="mb-4">
+                                <label for="student-name-input" class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                                <input type="text" id="student-name-input" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label for="student-ra-reg-input" class="block text-sm font-medium text-gray-700 mb-2">RA (sem dígito)</label>
+                                    <input type="text" id="student-ra-reg-input" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label for="student-digit-reg-input" class="block text-sm font-medium text-gray-700 mb-2">Dígito</label>
+                                    <input type="text" id="student-digit-reg-input" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="student-grade-reg-input" class="block text-sm font-medium text-gray-700 mb-2">Turma/Série</label>
+                                <select id="student-grade-reg-input" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                                    <!-- Opções de séries serão preenchidas por JS -->
+                                </select>
+                            </div>
+                            <button type="submit" id="student-save-btn" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 transition-colors font-semibold">Salvar Aluno</button>
+                            <button type="button" id="student-cancel-edit-btn" class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg shadow-md hover:bg-gray-600 transition-colors mt-4 font-semibold hidden">Cancelar Edição</button>
+                        </form>
+                        
+                       <!-- Cadastro em Lote -->
+<hr class="my-6">
+<h2 class="text-xl font-semibold mb-3 text-gray-700">Cadastro em Lote</h2>
+
+<!-- NOVO SELETOR DE SÉRIE -->
+<div class="mb-4">
+    <label for="student-batch-grade-select" class="block text-sm font-medium text-gray-700 mb-2">1. Selecione a Série para o Lote</label>
+    <select id="student-batch-grade-select" class="w-full p-3 border border-gray-300 rounded-lg" required>
+        <option value="">-- Escolha uma série --</option>
+        <!-- As séries serão populadas aqui pelo JS existente -->
+    </select>
+</div>
+
+<!-- TEXTO ATUALIZADO -->
+<div class="mb-4">
+    <label for="student-batch-upload" class="block text-sm font-medium text-gray-700 mb-2">2. Cole os Alunos</label>
+    <p class="text-sm text-gray-500 mb-3">Use as colunas: <br><strong>Nome, RA (sem dígito), Dígito</strong></p>
+    <textarea id="student-batch-upload" rows="10" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="João da Silva	12345678	9&#10;Maria Oliveira	87654321	0"></textarea>
+</div>
+                        <button id="student-batch-submit" class="w-full bg-teal-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-teal-700 transition-colors mt-4 font-semibold">Processar Lote</button>
+                    </div>
+
+                    <!-- Lista de Alunos -->
+                    <div class="lg:col-span-2 bg-white p-6 md:p-8 rounded-lg shadow-md">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-5 gap-4">
+                            <h2 class="text-2xl font-semibold text-gray-700">Alunos Cadastrados</h2>
+                            <div>
+                                <label for="student-list-filter" class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Série</label>
+                                <select id="student-list-filter" class="p-3 border border-gray-300 rounded-lg">
+                                    <option value="all">Todas as Séries</option>
+                                    <!-- Opções de séries serão preenchidas por JS -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="max-h-[600px] overflow-y-auto overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RA</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Série</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="students-list-table" class="bg-white divide-y divide-gray-200">
+                                    <!-- Lista de alunos será preenchida por JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Seção Admin: Relatórios -->
+            <section id="admin-report-section" class="app-view hidden">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-semibold mb-5 text-gray-700">Relatório de Desempenho</h2>
+                    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <!-- Seletor de Série -->
+    <div class="flex-1">
+        <label for="report-grade-select" class="block text-sm font-medium text-gray-700 mb-2">1. Selecione a Turma/Série</label>
+        <select id="report-grade-select" class="w-full p-3 border border-gray-300 rounded-lg">
+            <option value="">-- Escolha uma série --</option>
+            <!-- Opções de séries serão preenchidas por JS -->
+        </select>
+    </div>
+
+    <!-- NOVO Seletor de Visão -->
+    <div class="flex-1">
+        <label for="report-view-select" class="block text-sm font-medium text-gray-700 mb-2">2. Selecione a Visão</label>
+        <select id="report-view-select" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" disabled>
+            <option value="">-- Aguardando Série --</option>
+        </select>
+    </div>
+
+    <!-- Botão Atualizado -->
+    <button id="generate-report-btn" class="bg-purple-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 transition-colors font-semibold self-end">
+        Buscar Dados
+    </button>
+</div>
+
+                    <!-- Tabela de Relatório -->
+                    <p class="text-sm text-gray-500 mb-3">Dica: Clique e arraste para selecionar os dados da tabela e copiá-los (Ctrl+C) para colar em sua planilha.</p>
+                    <div id="report-table-container" class="overflow-x-auto">
+                        <!-- Tabela será gerada aqui -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal de Senha Admin -->
+    <div id="admin-lock-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full">
+            <h2 class="text-2xl font-semibold mb-4 text-center text-gray-700">Acesso Restrito</h2>
+            <p class="text-center text-gray-600 mb-5">Digite a senha de administrador para continuar.</p>
+            <form id="admin-password-form">
+                <label for="admin-password-input" class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                <input type="password" id="admin-password-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm" required>
+                <p id="admin-password-error" class="text-red-500 text-sm mt-2 hidden">Senha incorreta.</p>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors mt-6 font-semibold">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Loader Global -->
+    <div id="loading-spinner" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Modal de Mensagem (Custom Alert) -->
+    <div id="message-box" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full text-center">
+            <i id="message-box-icon" class="ph ph-check-circle text-5xl text-green-500 mb-4"></i>
+            <p id="message-box-text" class="text-lg text-gray-700 mb-6">Operação realizada com sucesso!</p>
+            <button id="message-box-ok" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot, 
+            collection, 
+            query, 
+            where, 
+            getDocs,
+            writeBatch,
+            serverTimestamp,
+            setLogLevel
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- VARIÁVEIS GLOBAIS ---
+        let db, auth, appId, userId;
+        let currentView = 'main-nav';
+        let isAdminAuthenticated = false;
+        let targetAdminView = '';
+        let currentStudentRA = null;
+        let currentStudentData = null;
+        let allStudentsCache = [];
+        let allProofsCache = [];
+        let currentReportData = { proof: null, students: [], answers: {} };
+        
+        // Definição das séries (padrão)
+        const grades = [
+            "1_EF", "2_EF", "3_EF", "4_EF", "5_EF", 
+            "6_EF", "7_EF", "8_EF", "9_EF",
+            "1_EM", "2_EM", "3_EM"
+        ];
+        
+        // Mapeamento de texto para as séries
+        const gradeLabels = {
+            "1_EF": "1º Ano - Ens. Fundamental", "2_EF": "2º Ano - Ens. Fundamental",
+            "3_EF": "3º Ano - Ens. Fundamental", "4_EF": "4º Ano - Ens. Fundamental",
+            "5_EF": "5º Ano - Ens. Fundamental", "6_EF": "6º Ano - Ens. Fundamental",
+            "7_EF": "7º Ano - Ens. Fundamental", "8_EF": "8º Ano - Ens. Fundamental",
+            "9_EF": "9º Ano - Ens. Fundamental", "1_EM": "1ª Série - Ens. Médio",
+            "2_EM": "2ª Série - Ens. Médio", "3_EM": "3ª Série - Ens. Médio"
+        };
+        
+        // Helper para obter letra do alfabeto (A, B, C, D, E)
+        const getAlphabetLetter = (index) => String.fromCharCode(65 + index);
+
+        // --- INICIALIZAÇÃO ---
+
+        // Função principal de inicialização do App
+        async function initApp() {
+           // Configuração do Firebase (Manual)
+const firebaseConfig = {
+  apiKey: "AIzaSyAXZ2wibeURyeDiUTbAdJyFpsmrmvn9ZPc",
+  authDomain: "gabarito-fb-ea773.firebaseapp.com",
+  projectId: "gabarito-fb-ea773",
+  storageBucket: "gabarito-fb-ea773.firebasestorage.app",
+  messagingSenderId: "183204100923",
+  appId: "1:183204100923:web:9af2d1651ac9eed57e951e"
+};
+
+appId = typeof __app_id !== 'undefined' ? __app_id : 'gabarito-app-default';
+// A verificação de configString foi removida pois agora a configuração é manual
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug'); // Habilita logs do Firestore
+
+                // Autenticação
+                await setupAuthListener();
+                
+                // Configuração dos Event Listeners da UI
+                setupUIEventListeners();
+                
+                // Preenche os selects de séries
+                populateGradeSelects();
+                
+                console.log("Sistema de Gabaritos iniciado com App ID:", appId);
+                
+            } catch (error) {
+                console.error("Erro ao inicializar o Firebase:", error);
+                showMessage(`Erro ao conectar: ${error.message}`, true);
+            }
+        }
+
+        // Configura o listener de autenticação
+        function setupAuthListener() {
+            return new Promise((resolve, reject) => {
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        console.log("Usuário autenticado:", user.uid);
+                        userId = user.uid;
+                        // Após autenticar, carrega os dados
+                        loadProofsList();
+                        loadStudentsList();
+                        resolve();
+                    } else {
+                        console.log("Nenhum usuário. Tentando login...");
+                        try {
+                            // Usa o token inicial se disponível, senão, anônimo
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Erro no login:", error);
+                            showMessage(`Erro de autenticação: ${error.message}`, true);
+                            reject(error);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Preenche todos os <select> de séries
+        function populateGradeSelects() {
+            const selects = document.querySelectorAll('select[id*="grade"]');
+            selects.forEach(select => {
+                // Limpa opções existentes (exceto a primeira, se for "escolha" ou "todas")
+                const firstOption = select.querySelector('option');
+                select.innerHTML = '';
+                if (firstOption && (firstOption.value === "" || firstOption.value === "all")) {
+                    select.appendChild(firstOption);
+                }
+                
+                grades.forEach(gradeKey => {
+                    const option = document.createElement('option');
+                    option.value = gradeKey;
+                    option.textContent = gradeLabels[gradeKey];
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Configura todos os listeners de cliques e submits
+        function setupUIEventListeners() {
+            // Navegação principal
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    // Se for botão admin, verifica a senha
+                    if (button.classList.contains('admin-button') && !isAdminAuthenticated) {
+                        targetAdminView = targetId;
+                        showView('admin-lock-modal');
+                    } else {
+                        showView(targetId);
+                    }
+                });
+            });
+
+            // Botão de Voltar Global
+            document.getElementById('back-to-home').addEventListener('click', () => showView('main-nav'));
+
+            // Modal de Senha Admin
+            document.getElementById('admin-password-form').addEventListener('submit', handleAdminPasswordSubmit);
+            
+            // Modal de Mensagem
+document.getElementById('message-box-ok').addEventListener('click', () => showView(currentView, true)); // Volta para a view atual
+
+            // --- Aluno ---
+            document.getElementById('student-ra-form').addEventListener('submit', handleStudentRASubmit);
+            document.getElementById('student-confirm-no').addEventListener('click', () => showView('student-section')); // Reinicia o fluxo do aluno
+            document.getElementById('student-confirm-yes').addEventListener('click', () => showStudentStep(3));
+            document.getElementById('student-exam-form').addEventListener('submit', (e) => e.preventDefault()); // O submit é pelo botão
+            document.getElementById('student-exam-submit').addEventListener('click', handleStudentExamSubmit);
+
+            // --- Admin Provas ---
+            document.getElementById('add-subject-btn').addEventListener('click', addSubjectField);
+            document.getElementById('generate-key-btn').addEventListener('click', handleGenerateAnswerKeyFields);
+            document.getElementById('proof-form').addEventListener('submit', handleProofSubmit);
+            document.getElementById('cancel-edit-proof-btn').addEventListener('click', resetProofForm);
+            document.getElementById('proofs-list').addEventListener('click', handleProofsListClick); // Delegação de eventos
+
+            // --- Admin Alunos ---
+            document.getElementById('student-register-form').addEventListener('submit', handleStudentRegisterSubmit);
+            document.getElementById('student-cancel-edit-btn').addEventListener('click', resetStudentForm);
+            document.getElementById('student-batch-submit').addEventListener('click', handleBatchUpload);
+            document.getElementById('student-list-filter').addEventListener('change', renderStudentsTable);
+            document.getElementById('students-list-table').addEventListener('click', handleStudentsListClick); // Delegação de eventos
+            
+            // --- Admin Relatórios ---
+            document.getElementById('generate-report-btn').addEventListener('click', handleReportGenerate);
+            document.getElementById('report-view-select').addEventListener('change', (e) => renderReportTable(e.target.value));
+        }
+
+        // --- SISTEMA DE NAVEGAÇÃO E MODAIS ---
+
+        // Controla a exibição das views e modais
+       function showView(viewId, isModalClose = false) {
+            // Esconde todas as views principais
+            document.querySelectorAll('.app-view').forEach(view => view.classList.add('hidden'));
+            
+            // Esconde a navegação principal
+            document.getElementById('main-nav').classList.add('hidden');
+            
+            // Esconde modais
+            document.getElementById('admin-lock-modal').classList.add('hidden');
+            document.getElementById('loading-spinner').classList.add('hidden');
+            document.getElementById('message-box').classList.add('hidden');
+            
+            // Mostra o botão de voltar se não estiver na home
+            document.getElementById('back-to-home').classList.toggle('hidden', viewId === 'main-nav');
+            
+            const viewElement = document.getElementById(viewId);
+
+// Lista de IDs que são modais e não devem atualizar a 'currentView'
+const modalIds = ['admin-lock-modal', 'loading-spinner', 'message-box'];
+
+if (viewElement) {
+    viewElement.classList.remove('hidden');
+
+    // Atualiza a view atual APENAS se não for um modal
+    if (!modalIds.includes(viewId)) {
+        currentView = viewId;
+    }
+} else {
+    console.warn(`View ID "${viewId}" não encontrado. Mostrando home.`);
+    document.getElementById('main-nav').classList.remove('hidden');
+    currentView = 'main-nav'; // Default para home se a view falhar
+}
+            
+            // Limpa formulários ao navegar para eles
+            if (!isModalClose) {
+            if (viewId === 'student-section') resetStudentFlow();
+            if (viewId === 'admin-proof-section') resetProofForm();
+            if (viewId === 'admin-student-section') resetStudentForm();
+            }
+        }
+
+        // Exibe/esconde o loader global
+        function showLoading(isLoading) {
+            document.getElementById('loading-spinner').classList.toggle('hidden', !isLoading);
+        }
+
+        // Exibe uma mensagem (alerta customizado)
+        function showMessage(message, isError = false) {
+            showLoading(false); // Garante que o loader está desligado
+            const icon = document.getElementById('message-box-icon');
+            
+            if (isError) {
+                icon.className = "ph ph-x-circle text-5xl text-red-500 mb-4";
+            } else {
+                icon.className = "ph ph-check-circle text-5xl text-green-500 mb-4";
+            }
+            
+            document.getElementById('message-box-text').textContent = message;
+            showView('message-box');
+        }
+
+        // --- AUTENTICAÇÃO ADMIN ---
+
+        function handleAdminPasswordSubmit(e) {
+            e.preventDefault();
+            const password = document.getElementById('admin-password-input').value;
+            const errorEl = document.getElementById('admin-password-error');
+            
+            if (password === '123fb') {
+                isAdminAuthenticated = true;
+                errorEl.classList.add('hidden');
+                document.getElementById('admin-password-input').value = '';
+                showView(targetAdminView); // Vai para a view admin desejada
+                targetAdminView = '';
+            } else {
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        // --- FLUXO DO ALUNO ---
+        
+        function resetStudentFlow() {
+            currentStudentRA = null;
+            currentStudentData = null;
+            document.getElementById('student-ra-input').value = '';
+            document.getElementById('student-exam-form').innerHTML = '';
+            showStudentStep(1);
+        }
+        
+        function showStudentStep(step) {
+            document.getElementById('student-step-1-ra').classList.toggle('hidden', step !== 1);
+            document.getElementById('student-step-2-confirm').classList.toggle('hidden', step !== 2);
+            document.getElementById('student-step-3-exam').classList.toggle('hidden', step !== 3);
+        }
+
+        async function handleStudentRASubmit(e) {
+            e.preventDefault();
+            const ra = document.getElementById('student-ra-input').value.trim();
+            if (!ra) {
+                showMessage("Por favor, digite seu RA.", true);
+                return;
+            }
+            
+            showLoading(true);
+           showLoading(true);
+    
+    // 1. Normaliza a entrada do aluno (remove zeros à esquerda)
+    // Ex: "000123456" -> "123456"  OU "123456" -> "123456"
+    const normalizedInput = ra.replace(/^0+/, ''); 
+
+    // 2. Busca no cache de alunos (allStudentsCache).
+    // Esta lista é carregada na inicialização do app.
+    const foundStudent = allStudentsCache.find(student => {
+        // student.id é o ID do documento (ex: "000123456")
+        const normalizedDbId = student.id.replace(/^0+/, ''); // Normaliza o ID do DB
+        return normalizedDbId.toUpperCase() === normalizedInput.toUpperCase();
+    });
+
+    // 3. Processa o resultado
+    if (foundStudent) {
+        currentStudentData = foundStudent; // Armazena o objeto completo do aluno
+        currentStudentRA = foundStudent.id; // Armazena o ID *real* do documento (com os zeros)
+        
+        document.getElementById('student-confirm-name').textContent = currentStudentData.nome;
+        document.getElementById('student-confirm-grade').textContent = gradeLabels[currentStudentData.serie] || currentStudentData.serie;
+        
+        showLoading(false);
+        showStudentStep(2);
+    } else {
+        // Se não achou no cache, o RA está incorreto ou o cache (onSnapshot) ainda não carregou.
+        // Para o usuário, a mensagem é a mesma.
+        showMessage("RA não encontrado. Verifique os dados ou procure o professor.", true);
+        // showLoading(false) é tratado pelo showMessage
+    }
+        }
+        
+        async function loadStudentExam() {
+            // A confirmação (passo 2) chama esta função ao clicar sim,
+            // mas a prova só é carregada no passo 3.
+            // A busca da prova agora é feita ao confirmar (handleStudentRASubmit)
+            // e o build do formulário ao clicar "Confirmar" (student-confirm-yes)
+            
+            const grade = currentStudentData.serie;
+            showLoading(true);
+            
+            try {
+                // 1. Encontrar a prova para esta série
+                const q = query(collection(db, 'artifacts', appId, 'public/data/proofs'), where('grade', '==', grade));
+                const querySnap = await getDocs(q);
+                
+                if (querySnap.empty) {
+                    showMessage("Nenhuma prova foi cadastrada para a sua série no momento.", true);
+                    showView('main-nav');
+                    return;
+                }
+                
+                // Assumindo uma prova por série
+                const proofData = querySnap.docs[0].data();
+                document.getElementById('student-exam-title').textContent = `Prova - ${gradeLabels[grade]}`;
+                
+                // 2. Construir o formulário da prova
+                const formContainer = document.getElementById('student-exam-form');
+                formContainer.innerHTML = ''; // Limpa formulário anterior
+                
+                proofData.subjects.forEach((subject, subjectIndex) => {
+                    let subjectHtml = `<fieldset class="mb-6 p-4 border rounded-lg">
+                        <legend class="text-xl font-semibold text-gray-800 px-2">${subject.name}</legend>`;
+                    
+                    for (let q = 1; q <= subject.questions; q++) {
+                        subjectHtml += `<div class="my-4 p-3 bg-gray-50 rounded-md">
+                            <p class="font-medium mb-2 text-gray-700">Questão ${q}</p>
+                            <div class="flex flex-wrap gap-3">`;
+                        
+                        for (let a = 0; a < subject.alternatives; a++) {
+                            const letter = getAlphabetLetter(a);
+                            const inputId = `s${subjectIndex}-q${q}-a${a}`;
+                            subjectHtml += `
+                                <div class="flex items-center">
+                                    <input type="radio" id="${inputId}" name="subject_${subjectIndex}_q_${q}" value="${letter}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" required>
+                                    <label for="${inputId}" class="ml-2 block text-sm font-medium text-gray-700">${letter}</label>
+                                </div>`;
+                        }
+                        subjectHtml += `</div></div>`;
+                    }
+                    subjectHtml += `</fieldset>`;
+                    formContainer.innerHTML += subjectHtml;
+                });
+                
+                showLoading(false);
+                // A navegação para o passo 3 é feita no listener do botão 'student-confirm-yes'
+                
+            } catch (error) {
+                console.error("Erro ao carregar prova:", error);
+                showMessage(`Erro ao carregar a prova: ${error.message}`, true);
+            }
+        }
+        
+        // Listener do botão de confirmação
+        document.getElementById('student-confirm-yes').addEventListener('click', async () => {
+            await loadStudentExam(); // Carrega a prova
+            showStudentStep(3); // Mostra a prova
+        });
+
+
+        async function handleStudentExamSubmit() {
+            const form = document.getElementById('student-exam-form');
+            if (!form.checkValidity()) {
+                showMessage("Por favor, responda todas as questões.", true);
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const answers = {};
+            
+            // Estrutura de dados para salvar as respostas
+            // { "0": ["A", "B", "C"], "1": ["D", "A"] } (onde a chave é o índice da disciplina)
+            for (const [key, value] of formData.entries()) {
+                // key é "subject_0_q_1"
+                const parts = key.split('_');
+                const subjectIndex = parts[1];
+                const questionIndex = parseInt(parts[3], 10) - 1; // q_1 -> índice 0
+                
+                if (!answers[subjectIndex]) {
+                    answers[subjectIndex] = [];
+                }
+                answers[subjectIndex][questionIndex] = value;
+            }
+            
+            showLoading(true);
+            
+            try {
+                // O ID do documento é "SERIE_RA" para garantir que só haja um por aluno
+                const answerDocId = `${currentStudentData.serie}_${currentStudentRA}`;
+                const answerRef = doc(db, 'artifacts', appId, 'public/data/answers', answerDocId);
+                
+                await setDoc(answerRef, {
+                    studentRA: currentStudentRA,
+                    studentName: currentStudentData.nome,
+                    grade: currentStudentData.serie,
+                    answers: answers, // Salva o objeto de respostas
+                    submittedAt: serverTimestamp()
+                });
+                
+                showMessage("Respostas enviadas com sucesso!");
+                showView('main-nav');
+                
+            } catch (error) {
+                console.error("Erro ao salvar respostas:", error);
+                showMessage(`Erro ao salvar respostas: ${error.message}`, true);
+            }
+        }
+        
+        // --- ADMIN CADASTRO DE PROVAS ---
+        
+        // Reseta o formulário de provas
+        function resetProofForm() {
+            const form = document.getElementById('proof-form');
+            form.reset();
+            document.getElementById('proof-edit-id').value = '';
+            document.getElementById('proof-form-title').textContent = 'Cadastrar Nova Prova';
+            document.getElementById('save-proof-btn').textContent = 'Salvar Prova';
+            document.getElementById('save-proof-btn').classList.add('hidden');
+            document.getElementById('generate-key-btn').classList.remove('hidden');
+            document.getElementById('cancel-edit-proof-btn').classList.add('hidden');
+            document.getElementById('answer-key-section').classList.add('hidden');
+            document.getElementById('answer-key-fields').innerHTML = '';
+            
+            // Mantém apenas o primeiro campo de disciplina
+            const subjectsContainer = document.getElementById('subjects-container');
+            subjectsContainer.innerHTML = `
+                <div class="subject-field-group p-4 border rounded-lg bg-gray-50">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Disciplina</label>
+                            <input type="text" class="subject-name w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: Matemática" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nº de Questões</label>
+                            <input type="number" class="subject-questions w-full p-2 border border-gray-300 rounded-md" min="1" value="5" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nº de Alternativas</label>
+                            <input type="number" class="subject-alternatives w-full p-2 border border-gray-300 rounded-md" min="2" max="5" value="4" required>
+                        </div>
+                    </div>
+                    <button type="button" class="remove-subject-btn text-red-500 hover:text-red-700 text-sm mt-2 font-medium hidden">Remover Disciplina</button>
+                </div>`;
+            updateRemoveSubjectButtons();
+        }
+        
+        // Adiciona um novo campo de disciplina
+        function addSubjectField() {
+            const container = document.getElementById('subjects-container');
+            const newFieldGroup = container.querySelector('.subject-field-group').cloneNode(true);
+            newFieldGroup.querySelector('input.subject-name').value = '';
+            newFieldGroup.querySelector('input.subject-questions').value = '5';
+            newFieldGroup.querySelector('input.subject-alternatives').value = '4';
+            container.appendChild(newFieldGroup);
+            updateRemoveSubjectButtons();
+        }
+        
+        // Atualiza a visibilidade dos botões "remover"
+        function updateRemoveSubjectButtons() {
+            const groups = document.querySelectorAll('.subject-field-group');
+            groups.forEach((group, index) => {
+                const button = group.querySelector('.remove-subject-btn');
+                button.classList.toggle('hidden', groups.length === 1); // Esconde se for o último
+                button.onclick = () => {
+                    group.remove();
+                    updateRemoveSubjectButtons();
+                };
+            });
+        }
+        
+        // Gera os campos para preencher o gabarito
+        function handleGenerateAnswerKeyFields() {
+            const subjectsContainer = document.getElementById('subjects-container');
+            const answerKeyFields = document.getElementById('answer-key-fields');
+            answerKeyFields.innerHTML = '';
+            let isValid = true;
+            
+            const subjectElements = subjectsContainer.querySelectorAll('.subject-field-group');
+            
+            subjectElements.forEach((group, subjectIndex) => {
+                const name = group.querySelector('.subject-name').value;
+                const questions = parseInt(group.querySelector('.subject-questions').value, 10);
+                const alternatives = parseInt(group.querySelector('.subject-alternatives').value, 10);
+                
+                if (!name || isNaN(questions) || questions < 1 || isNaN(alternatives) || alternatives < 2) {
+                    isValid = false;
+                    return;
+                }
+                
+                let subjectHtml = `<fieldset class="mb-4 p-4 border rounded-lg">
+                    <legend class="text-lg font-medium text-gray-800 px-2">${name}</legend>
+                    <div class="grid grid-cols-5 md:grid-cols-10 gap-2">`;
+                
+                const possibleAnswers = Array.from({ length: alternatives }, (_, i) => getAlphabetLetter(i));
+                
+                for (let q = 1; q <= questions; q++) {
+                    subjectHtml += `<div class="p-2 bg-gray-50 rounded-md">
+                        <label class="block text-sm font-medium text-gray-700 mb-1 text-center">Q${q}</label>
+                        <select name="key_s${subjectIndex}_q${q}" class="w-full p-2 border border-gray-300 rounded-md" required>`;
+                    
+                    possibleAnswers.forEach(letter => {
+                        subjectHtml += `<option value="${letter}">${letter}</option>`;
+                    });
+                    
+                    subjectHtml += `</select></div>`;
+                }
+                
+                subjectHtml += `</div></fieldset>`;
+                answerKeyFields.innerHTML += subjectHtml;
+            });
+            
+            if (!isValid) {
+                showMessage("Por favor, preencha corretamente todas as disciplinas (Nome, Questões, Alternativas).", true);
+                return;
+            }
+            
+            document.getElementById('answer-key-section').classList.remove('hidden');
+            document.getElementById('save-proof-btn').classList.remove('hidden');
+            document.getElementById('generate-key-btn').classList.add('hidden');
+        }
+
+        // Salva (cria ou atualiza) uma prova
+        async function handleProofSubmit(e) {
+            e.preventDefault();
+            
+            const grade = document.getElementById('proof-grade').value;
+            const editId = document.getElementById('proof-edit-id').value;
+            
+            const proofData = {
+                grade: grade,
+                subjects: []
+            };
+            
+            const subjectsContainer = document.getElementById('subjects-container');
+            const subjectElements = subjectsContainer.querySelectorAll('.subject-field-group');
+            const answerKeyForm = new FormData(document.getElementById('proof-form'));
+            
+            let formError = false;
+
+            subjectElements.forEach((group, subjectIndex) => {
+                const name = group.querySelector('.subject-name').value;
+                const questions = parseInt(group.querySelector('.subject-questions').value, 10);
+                const alternatives = parseInt(group.querySelector('.subject-alternatives').value, 10);
+                
+                if (!name || !questions || !alternatives) formError = true;
+                
+                const correctAnswers = [];
+                for (let q = 1; q <= questions; q++) {
+                    const key = `key_s${subjectIndex}_q${q}`;
+                    const answer = answerKeyForm.get(key);
+                    if (!answer) formError = true;
+                    correctAnswers.push(answer);
+                }
+                
+                proofData.subjects.push({
+                    name,
+                    questions,
+                    alternatives,
+                    correctAnswers
+                });
+            });
+            
+            if (formError) {
+                showMessage("Erro no formulário. Verifique se todas as disciplinas e gabaritos estão preenchidos.", true);
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                if (editId) {
+                    // Atualizando prova existente
+                    const proofRef = doc(db, 'artifacts', appId, 'public/data/proofs', editId);
+                    await setDoc(proofRef, proofData);
+                    showMessage("Prova atualizada com sucesso!");
+                } else {
+                    // Criando nova prova
+                    await addDoc(collection(db, 'artifacts', appId, 'public/data/proofs'), proofData);
+                    showMessage("Prova cadastrada com sucesso!");
+                }
+                resetProofForm();
+            } catch (error) {
+                console.error("Erro ao salvar prova:", error);
+                showMessage(`Erro ao salvar prova: ${error.message}`, true);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Carrega a lista de provas cadastradas
+        function loadProofsList() {
+            const q = collection(db, 'artifacts', appId, 'public/data/proofs');
+            onSnapshot(q, (querySnapshot) => {
+                const listElement = document.getElementById('proofs-list');
+                listElement.innerHTML = '';
+                allProofsCache = [];
+                
+                if (querySnapshot.empty) {
+                    listElement.innerHTML = '<li class="text-gray-500">Nenhuma prova cadastrada.</li>';
+                    return;
+                }
+                
+                querySnapshot.forEach((doc) => {
+                    const proof = doc.data();
+                    const proofId = doc.id;
+                    allProofsCache.push({ id: proofId, ...proof });
+                    
+                    const subjectsText = proof.subjects.map(s => `${s.name} (${s.questions}q)`).join(', ');
+                    
+                    const li = document.createElement('li');
+                    li.className = 'p-4 border rounded-lg bg-white shadow-sm flex justify-between items-center';
+                    li.innerHTML = `
+                        <div>
+                            <strong class="text-blue-700">${gradeLabels[proof.grade] || proof.grade}</strong>
+                            <p class="text-sm text-gray-600">${subjectsText}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button data-id="${proofId}" class="edit-proof-btn p-2 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-100">
+                                <i class="ph ph-pencil-simple" data-id="${proofId}"></i>
+                            </button>
+                            <button data-id="${proofId}" class="delete-proof-btn p-2 text-red-600 hover:text-red-800 rounded-full hover:bg-red-100">
+                                <i class="ph ph-trash" data-id="${proofId}"></i>
+                            </button>
+                        </div>`;
+                    listElement.appendChild(li);
+                });
+            }, (error) => {
+                console.error("Erro ao carregar lista de provas:", error);
+                showMessage("Erro ao carregar lista de provas.", true);
+            });
+        }
+        
+        // Delegação de eventos para a lista de provas (Editar/Excluir)
+        async function handleProofsListClick(e) {
+            const target = e.target;
+            const id = target.dataset.id;
+            
+            if (!id) return;
+
+            // Botão Excluir
+            if (target.classList.contains('delete-proof-btn') || target.parentElement.classList.contains('delete-proof-btn')) {
+                // Em um app real, usaríamos um modal de confirmação.
+                // Aqui, vamos excluir direto.
+                showLoading(true);
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public/data/proofs', id));
+                    showMessage("Prova excluída com sucesso.");
+                } catch (error) {
+                    console.error("Erro ao excluir prova:", error);
+                    showMessage(`Erro ao excluir prova: ${error.message}`, true);
+                }
+            }
+            
+            // Botão Editar
+            if (target.classList.contains('edit-proof-btn') || target.parentElement.classList.contains('edit-proof-btn')) {
+                loadProofDataForEdit(id);
+            }
+        }
+        
+        // Carrega dados da prova no formulário para edição
+        function loadProofDataForEdit(id) {
+            const proof = allProofsCache.find(p => p.id === id);
+            if (!proof) return;
+            
+            resetProofForm(); // Limpa o formulário
+            
+            document.getElementById('proof-form-title').textContent = 'Editar Prova';
+            document.getElementById('proof-edit-id').value = id;
+            document.getElementById('proof-grade').value = proof.grade;
+            
+            const subjectsContainer = document.getElementById('subjects-container');
+            subjectsContainer.innerHTML = ''; // Limpa campos de disciplina
+            
+            proof.subjects.forEach(subject => {
+                const newFieldGroup = document.createElement('div');
+                newFieldGroup.className = 'subject-field-group p-4 border rounded-lg bg-gray-50';
+                newFieldGroup.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Disciplina</label>
+                            <input type="text" class="subject-name w-full p-2 border border-gray-300 rounded-md" value="${subject.name}" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nº de Questões</label>
+                            <input type="number" class="subject-questions w-full p-2 border border-gray-300 rounded-md" min="1" value="${subject.questions}" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nº de Alternativas</label>
+                            <input type="number" class="subject-alternatives w-full p-2 border border-gray-300 rounded-md" min="2" max="5" value="${subject.alternatives}" required>
+                        </div>
+                    </div>
+                    <button type="button" class="remove-subject-btn text-red-500 hover:text-red-700 text-sm mt-2 font-medium hidden">Remover Disciplina</button>
+                `;
+                subjectsContainer.appendChild(newFieldGroup);
+            });
+            
+            updateRemoveSubjectButtons();
+            
+            // Gera o gabarito e preenche as respostas salvas
+            handleGenerateAnswerKeyFields();
+            
+            proof.subjects.forEach((subject, subjectIndex) => {
+                subject.correctAnswers.forEach((answer, questionIndex) => {
+                    const q = questionIndex + 1;
+                    const selectName = `key_s${subjectIndex}_q${q}`;
+                    document.querySelector(`select[name="${selectName}"]`).value = answer;
+                });
+            });
+            
+            // Ajusta botões
+            document.getElementById('save-proof-btn').textContent = 'Atualizar Prova';
+            document.getElementById('cancel-edit-proof-btn').classList.remove('hidden');
+            document.getElementById('generate-key-btn').classList.add('hidden');
+            document.getElementById('save-proof-btn').classList.remove('hidden');
+        }
+
+        // --- ADMIN CADASTRO DE ALUNOS ---
+
+        function resetStudentForm() {
+            const form = document.getElementById('student-register-form');
+            form.reset();
+            document.getElementById('student-edit-id').value = '';
+            document.getElementById('student-save-btn').textContent = 'Salvar Aluno';
+            document.getElementById('student-cancel-edit-btn').classList.add('hidden');
+            document.getElementById('student-ra-reg-input').disabled = false;
+            document.getElementById('student-digit-reg-input').disabled = false;
+        }
+
+        async function handleStudentRegisterSubmit(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('student-name-input').value;
+            const ra = document.getElementById('student-ra-reg-input').value;
+            const digit = document.getElementById('student-digit-reg-input').value.trim().toUpperCase();
+            const grade = document.getElementById('student-grade-reg-input').value;
+            const editId = document.getElementById('student-edit-id').value; // ID do documento (ra + digito)
+            
+            if (!name || !ra || !digit || !grade) {
+                showMessage("Todos os campos são obrigatórios.", true);
+                return;
+            }
+            
+            const studentDocId = editId || (ra + digit);
+            
+            const studentData = {
+                nome: name,
+                ra: ra,
+                digito: digit,
+                serie: grade
+            };
+            
+            showLoading(true);
+            try {
+                const studentRef = doc(db, 'artifacts', appId, 'public/data/students', studentDocId);
+                await setDoc(studentRef, studentData); // setDoc (cria ou atualiza)
+                
+                showMessage(editId ? "Aluno atualizado com sucesso!" : "Aluno cadastrado com sucesso!");
+                resetStudentForm();
+                
+            } catch (error) {
+                console.error("Erro ao salvar aluno:", error);
+                showMessage(`Erro ao salvar aluno: ${error.message}`, true);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+      // Processa o cadastro em lote
+async function handleBatchUpload() {
+    // 1. Obter a série selecionada no NOVO dropdown
+    const grade = document.getElementById('student-batch-grade-select').value;
+    const text = document.getElementById('student-batch-upload').value;
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+
+    // 2. Validação: Checar se a série foi selecionada
+    if (!grade) {
+        showMessage("Por favor, selecione a série para qual este lote será cadastrado.", true);
+        return;
+    }
+
+    if (lines.length === 0) {
+        showMessage("Nenhum dado inserido para o lote.", true);
+        return;
+    }
+
+    showLoading(true);
+    const batch = writeBatch(db);
+    let processedCount = 0;
+    let errorCount = 0;
+
+    lines.forEach(line => {
+        const columns = line.split('\t'); // Assume separador por TAB (Excel)
+
+        // 3. Mudar a verificação para 3 colunas
+        if (columns.length >= 3) {
+            let [nome, ra, digito] = columns.map(col => col.trim());
+if (digito) digito = digito.toUpperCase(); // Converte o dígito para maiúscula
+
+            // 4. Usar a 'grade' do dropdown.
+            if (nome && ra && digito) {
+                const studentDocId = ra + digito;
+                const studentRef = doc(db, 'artifacts', appId, 'public/data/students', studentDocId);
+                // 5. Salvar a 'grade' selecionada
+                batch.set(studentRef, { nome, ra, digito, serie: grade }); 
+                processedCount++;
+            } else {
+                errorCount++;
+            }
+        } else {
+            errorCount++;
+        }
+    });
+
+    if (processedCount === 0) {
+        // 6. Atualizar mensagem de erro
+        showMessage(`Nenhum aluno válido encontrado. Verifique o formato (Nome, RA, Dígito).`, true);
+        return;
+    }
+
+    try {
+        await batch.commit();
+        const gradeLabel = gradeLabels[grade] || grade;
+        showMessage(`${processedCount} alunos processados com sucesso para a série ${gradeLabel}. ${errorCount} linhas ignoradas por erro no formato.`);
+        document.getElementById('student-batch-upload').value = '';
+        document.getElementById('student-batch-grade-select').value = ''; // Limpa o select
+    } catch (error) {
+        console.error("Erro no cadastro em lote:", error);
+        showMessage(`Erro no cadastro em lote: ${error.message}`, true);
+    } finally {
+        showLoading(false);
+    }
+}
+        // Carrega a lista de alunos
+        function loadStudentsList() {
+            const q = collection(db, 'artifacts', appId, 'public/data/students');
+            onSnapshot(q, (querySnapshot) => {
+                allStudentsCache = [];
+                querySnapshot.forEach((doc) => {
+                    allStudentsCache.push({ id: doc.id, ...doc.data() });
+                });
+                renderStudentsTable(); // Renderiza a tabela com todos os alunos
+            }, (error) => {
+                console.error("Erro ao carregar lista de alunos:", error);
+                showMessage("Erro ao carregar lista de alunos.", true);
+            });
+        }
+        
+        // Renderiza a tabela de alunos (com filtro)
+        function renderStudentsTable() {
+            const filter = document.getElementById('student-list-filter').value;
+            const tableBody = document.getElementById('students-list-table');
+            tableBody.innerHTML = '';
+            
+            const filteredList = (filter === 'all')
+                ? allStudentsCache
+                : allStudentsCache.filter(student => student.serie === filter);
+            
+            if (filteredList.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Nenhum aluno encontrado.</td></tr>';
+                return;
+            }
+                
+            // Ordena por nome
+            filteredList.sort((a, b) => a.nome.localeCompare(b.nome));
+                
+            filteredList.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${student.nome}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${student.ra}-${student.digito}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${gradeLabels[student.serie] || student.serie}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                        <button data-id="${student.id}" class="edit-student-btn p-2 text-blue-600 hover:text-blue-800">
+                            Editar
+                        </button>
+                        <button data-id="${student.id}" class="delete-student-btn p-2 text-red-600 hover:text-red-800 ml-2">
+                            Excluir
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+        
+        // Delegação de eventos para a lista de alunos
+        async function handleStudentsListClick(e) {
+            const target = e.target;
+            const id = target.dataset.id;
+            
+            if (!id) return;
+            
+            // Excluir Aluno
+            if (target.classList.contains('delete-student-btn')) {
+                showLoading(true);
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public/data/students', id));
+                    showMessage("Aluno excluído com sucesso.");
+                    // O listener onSnapshot atualizará a lista
+                } catch (error) {
+                    console.error("Erro ao excluir aluno:", error);
+                    showMessage(`Erro ao excluir aluno: ${error.message}`, true);
+                }
+            }
+            
+            // Editar Aluno
+            if (target.classList.contains('edit-student-btn')) {
+                const student = allStudentsCache.find(s => s.id === id);
+                if (student) {
+                    document.getElementById('student-edit-id').value = student.id;
+                    document.getElementById('student-name-input').value = student.nome;
+                    document.getElementById('student-ra-reg-input').value = student.ra;
+                    document.getElementById('student-digit-reg-input').value = student.digito;
+                    document.getElementById('student-grade-reg-input').value = student.serie;
+                    
+                    // Não permite alterar RA/Dígito (chave primária)
+                    document.getElementById('student-ra-reg-input').disabled = true;
+                    document.getElementById('student-digit-reg-input').disabled = true;
+                    
+                    document.getElementById('student-save-btn').textContent = 'Atualizar Aluno';
+                    document.getElementById('student-cancel-edit-btn').classList.remove('hidden');
+                    window.scrollTo(0, 0); // Rola para o topo
+                }
+            }
+        }
+        
+       // --- ADMIN RELATÓRIOS (NOVA LÓGICA) ---
+
+// Função 1: Busca os dados e armazena no cache
+async function handleReportGenerate() {
+    const grade = document.getElementById('report-grade-select').value;
+    if (!grade) {
+        showMessage("Por favor, selecione uma série.", true);
+        return;
+    }
+
+    showLoading(true);
+    const reportContainer = document.getElementById('report-table-container');
+    reportContainer.innerHTML = '';
+
+    // Limpa o cache
+    currentReportData = { proof: null, students: [], answers: {} };
+
+    try {
+        // 1. Obter a prova (gabarito oficial)
+        const proofQ = query(collection(db, 'artifacts', appId, 'public/data/proofs'), where('grade', '==', grade));
+        const proofSnap = await getDocs(proofQ);
+
+        if (proofSnap.empty) {
+            showMessage("Nenhuma prova cadastrada para esta série. Impossível gerar relatório.", true);
+            return;
+        }
+        currentReportData.proof = proofSnap.docs[0].data(); // Assumindo 1 prova
+
+        // 2. Obter todos os alunos da série
+        const studentsQ = query(collection(db, 'artifacts', appId, 'public/data/students'), where('serie', '==', grade));
+        const studentsSnap = await getDocs(studentsQ);
+        studentsSnap.forEach(doc => currentReportData.students.push(doc.data()));
+        currentReportData.students.sort((a, b) => a.nome.localeCompare(b.nome)); // Ordena por nome
+
+        // 3. Obter todas as respostas da série
+        const answersQ = query(collection(db, 'artifacts', appId, 'public/data/answers'), where('grade', '==', grade));
+        const answersSnap = await getDocs(answersQ);
+        answersSnap.forEach(doc => {
+            const answer = doc.data();
+            currentReportData.answers[answer.studentRA] = answer;
+        });
+
+        // 4. Popular o seletor de "Visão"
+        populateReportViewSelect(currentReportData.proof);
+
+        // 5. Renderizar a tabela com a visão "Resumo"
+        renderReportTable('resumo');
+
+        showLoading(false);
+
+    } catch (error) {
+        console.error("Erro ao gerar relatório:", error);
+        showMessage(`Erro ao gerar relatório: ${error.message}`, true);
+    }
+}
+
+// Função 2: Popula o novo seletor de "Visão"
+function populateReportViewSelect(proof) {
+    const select = document.getElementById('report-view-select');
+    select.innerHTML = ''; // Limpa opções
+
+    // Adiciona a visão "Resumo Geral"
+    select.add(new Option('Resumo Geral', 'resumo'));
+
+    // Adiciona uma visão para cada disciplina
+    proof.subjects.forEach((subject, index) => {
+        select.add(new Option(subject.name, `s_${index}`));
+    });
+
+    select.disabled = false; // Habilita o seletor
+    select.classList.remove('bg-gray-100');
+}
+
+// Função 3: Renderiza a tabela (agora como CSS Grid) baseada na "Visão"
+    function renderReportTable(viewType) {
+        const reportContainer = document.getElementById('report-table-container');
+        reportContainer.innerHTML = ''; // Limpa tabela anterior
+        
+        const { proof, students, answers } = currentReportData;
+        
+        if (!proof || students.length === 0) {
+            reportContainer.innerHTML = '<p class="text-gray-500">Nenhum dado para exibir.</p>';
+            return;
+        }
+
+        // Define as colunas do grid. 1.5fr para nome, 1fr para o resto.
+        // Isso nos dá 4 colunas
+        const columns = '1.5fr 1fr 1fr 1fr';
+        
+        // Em vez de <table...>, usamos o <div...> com o CSS que adicionamos
+        let gridHtml = `<div id="report-grid-container" style="grid-template-columns: ${columns};">`;
+        
+        let totalQuestions = 0;
+        proof.subjects.forEach(s => totalQuestions += s.questions);
+
+        // --- Visão: RESUMO GERAL ---
+        if (viewType === 'resumo') {
+            // Cabeçalho (Header)
+            gridHtml += `<div class="report-header text-left">Aluno</div>
+                         <div class="report-header text-left">RA</div>
+                         <div class="report-header text-center">Total Acertos</div>
+                         <div class="report-header text-center">Total (%)</div>`;
+            
+            // Corpo (Dados)
+            students.forEach(student => {
+                const ra = student.ra + student.digito.toUpperCase();
+                const studentAnswer = answers[ra];
+                
+                // Células de dados
+                gridHtml += `<div class="font-medium text-gray-900">${student.nome}</div>
+                             <div class="text-gray-500">${ra}</div>`;
+                
+                if (!studentAnswer) {
+                    gridHtml += `<div class="text-center text-gray-500">-</div>
+                                 <div class="text-center text-gray-500">-</div>`;
+                } else {
+                    let totalStudentCorrect = 0;
+                    proof.subjects.forEach((subject, subjectIndex) => {
+                        const officialAnswers = subject.correctAnswers;
+                        const studentAnswers = studentAnswer.answers[subjectIndex] || [];
+                        for (let i = 0; i < officialAnswers.length; i++) {
+                            if (officialAnswers[i] === studentAnswers[i]) {
+                                totalStudentCorrect++;
+                            }
+                        }
+                    });
+                    const totalPercentage = (totalStudentCorrect / totalQuestions * 100).toFixed(1);
+                    gridHtml += `<div class="text-center text-gray-900 font-medium">${totalStudentCorrect} / ${totalQuestions}</div>
+                                 <div class="text-center text-gray-900 font-medium">${totalPercentage}%</div>`;
+                }
+            });
+
+        // --- Visão: DISCIPLINA ESPECÍFICA ---
+        } else if (viewType.startsWith('s_')) {
+            const subjectIndex = parseInt(viewType.split('_')[1], 10);
+            const subject = proof.subjects[subjectIndex];
+            
+            // Cabeçalho (Header)
+            gridHtml += `<div class="report-header text-left">Aluno</div>
+                         <div class="report-header text-left">RA</div>
+                         <div class="report-header text-center">Acertos (${subject.name})</div>
+                         <div class="report-header text-center">% (${subject.name})</div>`;
+
+            // Corpo (Dados)
+            students.forEach(student => {
+                const ra = student.ra + student.digito.toUpperCase();
+                const studentAnswer = answers[ra];
+                
+                gridHtml += `<div class="font-medium text-gray-900">${student.nome}</div>
+                             <div class="text-gray-500">${ra}</div>`;
+                
+                if (!studentAnswer) {
+                    gridHtml += `<div class="text-center text-gray-500">-</div>
+                                 <div class="text-center text-gray-500">-</div>`;
+                } else {
+                    const officialAnswers = subject.correctAnswers;
+                    const studentAnswers = studentAnswer.answers[subjectIndex] || [];
+                    let correctCount = 0;
+                    for (let i = 0; i < officialAnswers.length; i++) {
+                        if (officialAnswers[i] === studentAnswers[i]) {
+                            correctCount++;
+                        }
+                    }
+                    const percentage = (correctCount / subject.questions * 100).toFixed(1);
+                    gridHtml += `<div class="text-center text-gray-700">${correctCount} / ${subject.questions}</div>
+                                 <div class="text-center text-gray-700">${percentage}%</div>`;
+                }
+            });
+        }
+        
+        gridHtml += `</div>`; // Fecha o grid-container
+        reportContainer.innerHTML = gridHtml;
+    }
+// --- INICIALIZAÇÃO DO APP ---
+        // Adiciona o listener para iniciar o app quando o DOM estiver pronto
+        window.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
