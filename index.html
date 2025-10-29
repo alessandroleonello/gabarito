@@ -413,6 +413,7 @@
         let allStudentsCache = [];
         let allProofsCache = [];
         let currentReportData = { proof: null, students: [], answers: {} };
+        let currentProofForEdit = null;
         
         // Definição das séries (padrão)
         const grades = [
@@ -834,6 +835,7 @@ if (viewElement) {
         
         // Reseta o formulário de provas
         function resetProofForm() {
+            currentProofForEdit = null;
             const form = document.getElementById('proof-form');
             form.reset();
             document.getElementById('proof-edit-id').value = '';
@@ -877,6 +879,10 @@ if (viewElement) {
             newFieldGroup.querySelector('input.subject-alternatives').value = '4';
             container.appendChild(newFieldGroup);
             updateRemoveSubjectButtons();
+            // No final da função addSubjectField:
+if (document.getElementById('proof-edit-id').value) {
+    handleGenerateAnswerKeyFields(true);
+}
         }
         
         // Atualiza a visibilidade dos botões "remover"
@@ -893,7 +899,7 @@ if (viewElement) {
         }
         
         // Gera os campos para preencher o gabarito
-        function handleGenerateAnswerKeyFields() {
+        function handleGenerateAnswerKeyFields(isEditing = false) {
             const subjectsContainer = document.getElementById('subjects-container');
             const answerKeyFields = document.getElementById('answer-key-fields');
             answerKeyFields.innerHTML = '';
@@ -934,15 +940,40 @@ if (viewElement) {
             });
             
             if (!isValid) {
-                showMessage("Por favor, preencha corretamente todas as disciplinas (Nome, Questões, Alternativas).", true);
-                return;
-            }
+    // Se estivermos no modo de EDIÇÃO, permitimos que a regeneração ocorra
+    // para que os campos do gabarito sejam atualizados.
+    if (isEditing) {
+        console.warn("Validação falhou, mas continuando a regenerar campos para edição.");
+    } else {
+        // Se NÃO estivermos editando, é um erro de envio/criação
+        showMessage("Por favor, preencha corretamente todas as disciplinas (Nome, Questões, Alternativas).", true);
+        return;
+    }
+}
             
             document.getElementById('answer-key-section').classList.remove('hidden');
-            document.getElementById('save-proof-btn').classList.remove('hidden');
-            document.getElementById('generate-key-btn').classList.add('hidden');
-        }
+document.getElementById('save-proof-btn').classList.remove('hidden');
+document.getElementById('generate-key-btn').classList.add('hidden'); // Oculta o botão "Definir Gabarito"
 
+// Se estivermos editando, preenchemos os selects com as respostas salvas.
+if (isEditing && currentProofForEdit) {
+    currentProofForEdit.subjects.forEach((subject, subjectIndex) => {
+        // Itera sobre as respostas salvas da disciplina
+        subject.correctAnswers.forEach((answer, questionIndex) => {
+            const q = questionIndex + 1;
+            const selectName = `key_s${subjectIndex}_q${q}`;
+
+            // Tenta encontrar o SELECT que acabou de ser gerado
+            const selectEl = document.querySelector(`select[name="${selectName}"]`);
+
+            // Se o SELECT existir (se o número de questões for o mesmo ou maior), preenche.
+            if (selectEl) {
+                selectEl.value = answer;
+            }
+        });
+    });
+}
+        }
         // Salva (cria ou atualiza) uma prova
         async function handleProofSubmit(e) {
             e.preventDefault();
@@ -1087,7 +1118,7 @@ if (viewElement) {
             if (!proof) return;
             
             resetProofForm(); // Limpa o formulário
-            
+            currentProofForEdit = proof;
             document.getElementById('proof-form-title').textContent = 'Editar Prova';
             document.getElementById('proof-edit-id').value = id;
             document.getElementById('proof-grade').value = proof.grade;
@@ -1121,22 +1152,30 @@ if (viewElement) {
             updateRemoveSubjectButtons();
             
             // Gera o gabarito e preenche as respostas salvas
-            handleGenerateAnswerKeyFields();
+            handleGenerateAnswerKeyFields(true);
             
-            proof.subjects.forEach((subject, subjectIndex) => {
-                subject.correctAnswers.forEach((answer, questionIndex) => {
-                    const q = questionIndex + 1;
-                    const selectName = `key_s${subjectIndex}_q${q}`;
-                    document.querySelector(`select[name="${selectName}"]`).value = answer;
-                });
-            });
             
             // Ajusta botões
             document.getElementById('save-proof-btn').textContent = 'Atualizar Prova';
             document.getElementById('cancel-edit-proof-btn').classList.remove('hidden');
             document.getElementById('generate-key-btn').classList.add('hidden');
             document.getElementById('save-proof-btn').classList.remove('hidden');
+            // Adiciona listener para regenerar o gabarito se os campos da disciplina mudarem
+document.getElementById('subjects-container').addEventListener('input', (e) => {
+    // Verifica se estamos no modo de edição (se há um ID de prova)
+    if (document.getElementById('proof-edit-id').value) {
+        // Verifica se a mudança ocorreu em um campo de disciplina
+        if (e.target.classList.contains('subject-name') || 
+            e.target.classList.contains('subject-questions') || 
+            e.target.classList.contains('subject-alternatives')) {
+
+            // Regenera a estrutura do gabarito para incluir ou ajustar as novas questões
+            handleGenerateAnswerKeyFields(true); // O 'true' indica que é uma regeração silenciosa
         }
+    }
+});
+        }
+
 
         // --- ADMIN CADASTRO DE ALUNOS ---
 
